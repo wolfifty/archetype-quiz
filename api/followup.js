@@ -25,14 +25,21 @@ export default async function handler(req, res) {
   }
 
   try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: 'кстати, я подготовила файл — «40 готовых сценариев рилс, которые можно снять уже сегодня». забирай ниже⬇️',
+      }),
+    })
+
     await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: chatId,
         document: `${process.env.SITE_URL}/files/40-idey-progrev.pdf`,
-        caption:
-          'кстати, я подготовила файл — «40 готовых сценариев рилс, которые можно снять уже сегодня». забирай ниже⬇️',
       }),
     })
   } catch (err) {
