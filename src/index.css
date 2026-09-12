@@ -44,6 +44,11 @@ body {
 }
 
 .result-screen .bg-image {
+   background: var(--ink);
+}
+
+.result-screen .bg-image {
+  object-fit: contain;
   object-position: center;
 }
 
