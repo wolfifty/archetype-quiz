@@ -43,13 +43,91 @@ body {
   object-position: center 20%;
 }
 
-.result-screen .bg-image {
-   background: var(--ink);
+.result-screen {
+  display: block;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ink);
 }
 
-.result-screen .bg-image {
+.bg-blur {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(60px) saturate(1.5) brightness(0.5);
+  transform: scale(1.2);
+  z-index: 0;
+}
+
+.blur-tint {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(60, 8, 8, 0.55) 0%,
+    rgba(10, 8, 7, 0.6) 45%,
+    rgba(10, 8, 7, 0.92) 100%
+  );
+}
+
+.result-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 18px
+    calc(env(safe-area-inset-bottom, 0px) + 28px);
+}
+
+.result-image-frame {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--panel-border);
+}
+
+.result-image {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  object-position: center;
+  display: block;
+  background: var(--ink);
+}
+
+.result-text-panel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 22px 20px;
+  backdrop-filter: blur(10px);
+}
+
+.result-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 700;
+  font-size: 28px;
+  margin: 0 0 12px;
+  color: var(--bone);
+  letter-spacing: 0.02em;
+}
+
+.result-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(236, 230, 221, 0.88);
+  margin: 0;
 }
 
 .overlay {
@@ -156,11 +234,6 @@ body {
 }
 
 .restart-btn {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
-  z-index: 2;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -169,11 +242,12 @@ body {
   background: var(--panel);
   border: 1px solid var(--blood);
   border-radius: 24px;
-  padding: 12px 24px;
+  padding: 12px 28px;
   cursor: pointer;
   backdrop-filter: blur(8px);
+  margin-top: 4px;
 }
 
 .restart-btn:active {
-  transform: translateX(-50%) scale(0.97);
+  transform: scale(0.97);
 }
