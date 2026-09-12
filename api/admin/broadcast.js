@@ -1,6 +1,9 @@
 // POST /api/admin/broadcast
-// Тело: { initData, photoBase64 (data:image/...;base64,...), caption, buttonText?, buttonUrl? }
-// Ответ: { ok: true, sent, failed }
+// Тело: { initData, photoBase64?, caption?, buttonText?, buttonUrl?, chatIds? }
+//   - photoBase64 и caption необязательны, но нужен хотя бы один из них
+//   - buttonText/buttonUrl необязательны (нужны оба вместе, иначе кнопка не добавляется)
+//   - chatIds — необязательный массив chat_id; если не передан, шлём всем из БД
+// Ответ: { ok: true, sent, failed, total }
 
 import { requireAdmin } from '../_lib/telegram.js'
 
@@ -15,6 +18,35 @@ function decodeDataUrl(dataUrl) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function sendToUser(botToken, chatId, { photo, caption, replyMarkup }) {
+  if (photo) {
+    const form = new FormData()
+    form.append('chat_id', String(chatId))
+    if (caption) form.append('caption', caption)
+    if (replyMarkup) form.append('reply_markup', JSON.stringify(replyMarkup))
+    form.append('photo', new Blob([photo.buffer], { type: photo.mime }), photo.filename)
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST',
+      body: form,
+    })
+    const tgJson = await tgRes.json()
+    return tgJson.ok
+  }
+
+  const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: caption,
+      reply_markup: replyMarkup,
+    }),
+  })
+  const tgJson = await tgRes.json()
+  return tgJson.ok
 }
 
 export default async function handler(req, res) {
@@ -33,27 +65,13 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY
 
-  const { photoBase64, caption, buttonText, buttonUrl } = req.body || {}
+  const { photoBase64, caption, buttonText, buttonUrl, chatIds } = req.body || {}
 
-  const photo = decodeDataUrl(photoBase64)
-  if (!photo) {
-    res.status(400).json({ ok: false, error: 'no photo' })
-    return
-  }
+  const photo = photoBase64 ? decodeDataUrl(photoBase64) : null
+  const trimmedCaption = (caption || '').trim()
 
-  // Забираем всех пользователей
-  let users = []
-  try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/users?select=chat_id`, {
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      },
-    })
-    users = await response.json()
-  } catch (err) {
-    console.error('Ошибка получения пользователей для рассылки:', err)
-    res.status(500).json({ ok: false })
+  if (!photo && !trimmedCaption) {
+    res.status(400).json({ ok: false, error: 'nothing to send' })
     return
   }
 
@@ -62,34 +80,43 @@ export default async function handler(req, res) {
       ? { inline_keyboard: [[{ text: buttonText, url: buttonUrl }]] }
       : undefined
 
+  // Получатели: либо переданный список, либо все из БД
+  let targetIds = Array.isArray(chatIds) && chatIds.length > 0 ? chatIds : null
+
+  if (!targetIds) {
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/users?select=chat_id`, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      })
+      const users = await response.json()
+      targetIds = users.map((u) => u.chat_id)
+    } catch (err) {
+      console.error('Ошибка получения пользователей для рассылки:', err)
+      res.status(500).json({ ok: false })
+      return
+    }
+  }
+
   let sent = 0
   let failed = 0
 
-  for (const user of users) {
+  for (const chatId of targetIds) {
     try {
-      const form = new FormData()
-      form.append('chat_id', String(user.chat_id))
-      if (caption) form.append('caption', caption)
-      if (replyMarkup) form.append('reply_markup', JSON.stringify(replyMarkup))
-      form.append('photo', new Blob([photo.buffer], { type: photo.mime }), photo.filename)
-
-      const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-        method: 'POST',
-        body: form,
+      const ok = await sendToUser(botToken, chatId, {
+        photo,
+        caption: trimmedCaption || undefined,
+        replyMarkup,
       })
-      const tgJson = await tgRes.json()
-
-      if (tgJson.ok) {
-        sent += 1
-      } else {
-        failed += 1
-      }
-    } catch (err) {
+      if (ok) sent += 1
+      else failed += 1
+    } catch {
       failed += 1
     }
-
-    await sleep(50) // не разгоняемся быстрее ~20 сообщений в секунду
+    await sleep(50)
   }
 
-  res.status(200).json({ ok: true, sent, failed, total: users.length })
+  res.status(200).json({ ok: true, sent, failed, total: targetIds.length })
 }

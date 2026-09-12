@@ -254,8 +254,8 @@ body {
 
 .admin-toggle {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 16px);
-  right: 18px;
+  top: calc(env(safe-area-inset-top, 0px) + 68px);
+  left: 18px;
   z-index: 3;
   width: 38px;
   height: 38px;
@@ -420,4 +420,37 @@ body {
   margin-top: 12px;
   font-size: 14px;
   color: rgba(236, 230, 221, 0.85);
+}
+
+.recipient-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.recipient-toggle .admin-tab {
+  flex: none;
+  padding: 8px 16px;
+}
+
+.recipient-list {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(156, 28, 28, 0.2);
+}
+
+.recipient-row:last-child {
+  border-bottom: none;
 }

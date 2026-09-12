@@ -4,7 +4,39 @@ function getInitData() {
   return window.Telegram?.WebApp?.initData
 }
 
-function ClientsTab() {
+// Сжимаем фото в браузере перед отправкой — иначе большие фото (3-5 МБ)
+// не проходят через лимит размера запроса на Vercel (~4.5 МБ).
+function compressImage(file, maxDim = 1280, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width)
+            width = maxDim
+          } else {
+            width = Math.round((width * maxDim) / height)
+            height = maxDim
+          }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.onerror = reject
+      img.src = reader.result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function useUsers() {
   const [users, setUsers] = useState(null)
   const [error, setError] = useState(null)
 
@@ -21,6 +53,12 @@ function ClientsTab() {
       })
       .catch(() => setError('Не удалось загрузить список'))
   }, [])
+
+  return { users, error }
+}
+
+function ClientsTab() {
+  const { users, error } = useUsers()
 
   if (error) return <p className="admin-error">{error}</p>
   if (!users) return <p className="admin-loading">Загрузка…</p>
@@ -54,27 +92,93 @@ function ClientsTab() {
   )
 }
 
+function RecipientPicker({ mode, setMode, selectedIds, setSelectedIds }) {
+  const { users, error } = useUsers()
+
+  function toggle(chatId) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(chatId)) next.delete(chatId)
+      else next.add(chatId)
+      return next
+    })
+  }
+
+  return (
+    <>
+      <label className="admin-label">Получатели</label>
+      <div className="recipient-toggle">
+        <button
+          className={`admin-tab ${mode === 'all' ? 'active' : ''}`}
+          onClick={() => setMode('all')}
+          type="button"
+        >
+          Все
+        </button>
+        <button
+          className={`admin-tab ${mode === 'selected' ? 'active' : ''}`}
+          onClick={() => setMode('selected')}
+          type="button"
+        >
+          Выбрать
+        </button>
+      </div>
+
+      {mode === 'selected' && (
+        <div className="recipient-list">
+          {error && <p className="admin-error">{error}</p>}
+          {!users && !error && <p className="admin-loading">Загрузка…</p>}
+          {users?.map((u) => (
+            <label key={u.chat_id} className="recipient-row">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(u.chat_id)}
+                onChange={() => toggle(u.chat_id)}
+              />
+              <span>
+                {u.username ? `@${u.username}` : u.first_name || u.chat_id}
+                {u.archetype ? ` — ${u.archetype}` : ''}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 function BroadcastTab() {
-  const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
+  const [compressing, setCompressing] = useState(false)
   const [caption, setCaption] = useState('')
   const [buttonText, setButtonText] = useState('')
   const [buttonUrl, setButtonUrl] = useState('')
+  const [recipientMode, setRecipientMode] = useState('all')
+  const [selectedIds, setSelectedIds] = useState(new Set())
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null)
 
-  function handleFile(e) {
+  async function handleFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setPhotoFile(file)
-    const reader = new FileReader()
-    reader.onload = () => setPhotoPreview(reader.result)
-    reader.readAsDataURL(file)
+    setCompressing(true)
+    try {
+      const compressed = await compressImage(file)
+      setPhotoPreview(compressed)
+    } catch {
+      setResult('Не удалось обработать фото, попробуй другое')
+    } finally {
+      setCompressing(false)
+    }
   }
 
+  const hasContent = Boolean(photoPreview) || caption.trim().length > 0
+  const hasRecipients = recipientMode === 'all' || selectedIds.size > 0
+  const canSend = hasContent && hasRecipients && !sending && !compressing
+
   async function handleSend() {
-    if (!photoPreview) return
-    const confirmed = window.confirm('Отправить рассылку всем пользователям?')
+    if (!canSend) return
+    const confirmed = window.confirm('Отправить рассылку?')
     if (!confirmed) return
 
     setSending(true)
@@ -85,10 +189,11 @@ function BroadcastTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           initData: getInitData(),
-          photoBase64: photoPreview,
+          photoBase64: photoPreview || undefined,
           caption,
           buttonText,
           buttonUrl,
+          chatIds: recipientMode === 'selected' ? Array.from(selectedIds) : undefined,
         }),
       })
       const data = await res.json()
@@ -106,8 +211,9 @@ function BroadcastTab() {
 
   return (
     <div className="broadcast-form">
-      <label className="admin-label">Фото</label>
+      <label className="admin-label">Фото (необязательно)</label>
       <input type="file" accept="image/*" onChange={handleFile} />
+      {compressing && <p className="admin-loading">Обрабатываем фото…</p>}
       {photoPreview && <img src={photoPreview} alt="" className="broadcast-preview" />}
 
       <label className="admin-label">Текст</label>
@@ -133,12 +239,15 @@ function BroadcastTab() {
         placeholder="Ссылка (https://...)"
       />
 
-      <button
-        className="admin-send-btn"
-        onClick={handleSend}
-        disabled={!photoPreview || sending}
-      >
-        {sending ? 'Отправляем…' : 'Отправить всем'}
+      <RecipientPicker
+        mode={recipientMode}
+        setMode={setRecipientMode}
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
+      />
+
+      <button className="admin-send-btn" onClick={handleSend} disabled={!canSend}>
+        {sending ? 'Отправляем…' : 'Отправить'}
       </button>
 
       {result && <p className="admin-result">{result}</p>}
