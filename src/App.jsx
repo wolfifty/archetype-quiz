@@ -24,6 +24,19 @@ export default function App() {
     return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]
   }, [isFinished, answers])
 
+  // Как только у нас есть результат — отправляем его на бэкенд для сохранения в БД
+  useEffect(() => {
+    if (!resultKey) return
+    const initData = window.Telegram?.WebApp?.initData
+    if (!initData) return // открыто не из Telegram — сохранять некуда, просто показываем результат
+
+    fetch('/api/save-result', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData, archetype: resultKey }),
+    }).catch((err) => console.error('Не удалось сохранить результат:', err))
+  }, [resultKey])
+
   function handleChoose(archetype) {
     setAnswers((prev) => [...prev, archetype])
   }
