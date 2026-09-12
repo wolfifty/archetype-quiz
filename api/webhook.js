@@ -7,6 +7,8 @@
 //   SUPABASE_URL           — адрес проекта Supabase
 //   SUPABASE_SERVICE_KEY   — service_role ключ Supabase
 //   QSTASH_TOKEN           — токен Upstash QStash (для отложенного сообщения через 10 мин)
+//   QSTASH_URL             — региональный адрес QStash из дашборда Upstash, например
+//                            https://qstash-us-east-1.upstash.io (без слэша на конце)
 //   FOLLOWUP_SECRET        — любая произвольная строка-пароль, защищает /api/followup от чужих вызовов
 //   FOLLOWUP_DELAY         — необязательно, по умолчанию "10m" (можно поставить "1m" для теста)
 
@@ -51,8 +53,10 @@ async function scheduleFollowup(chatId) {
     return
   }
 
+  const qstashUrl = process.env.QSTASH_URL || 'https://qstash.upstash.io'
+
   try {
-    await fetch(`https://qstash.upstash.io/v2/publish/${siteUrl}/api/followup`, {
+    const response = await fetch(`${qstashUrl}/v2/publish/${siteUrl}/api/followup`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${qstashToken}`,
@@ -62,6 +66,9 @@ async function scheduleFollowup(chatId) {
       },
       body: JSON.stringify({ chatId }),
     })
+    if (!response.ok) {
+      console.error('QStash отказал:', response.status, await response.text())
+    }
   } catch (err) {
     console.error('Ошибка планирования follow-up:', err)
   }
