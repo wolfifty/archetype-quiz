@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { questions, results } from './quizData'
+import { questions, results, CLIENT_USERNAME } from './quizData'
 import AdminPanel from './AdminPanel'
 
 export default function App() {
@@ -67,6 +67,16 @@ export default function App() {
     setAnswers([])
   }
 
+  function handleContactClient() {
+    const url = `https://t.me/${CLIENT_USERNAME}?text=${encodeURIComponent('архетип')}`
+    const tg = window.Telegram?.WebApp
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(url)
+    } else {
+      window.open(url, '_blank')
+    }
+  }
+
   const adminToggle = isAdmin && !showAdmin && (
     <button
       className="admin-toggle"
@@ -95,6 +105,16 @@ export default function App() {
           <div className="result-text-panel">
             <h1 className="result-title">{result.title}</h1>
             <p className="result-text">{result.text}</p>
+          </div>
+          <div className="cta-panel">
+            <p className="cta-title">Поздравляю! Ты определил(а) свой архетип!</p>
+            <p className="cta-text">
+              Чтобы он приносил деньги и аудиторию, нужен разбор твоей личной стратегии,
+              а не общей теории.
+            </p>
+            <button className="cta-btn" onClick={handleContactClient}>
+              Написать «архетип»
+            </button>
           </div>
           <button className="restart-btn" onClick={handleRestart}>
             Пройти ещё раз

@@ -130,6 +130,49 @@ body {
   margin: 0;
 }
 
+.cta-panel {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(160deg, rgba(156, 28, 28, 0.28), rgba(10, 8, 7, 0.9));
+  border: 1px solid var(--blood);
+  border-radius: 18px;
+  padding: 20px 20px 18px;
+  text-align: center;
+}
+
+.cta-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0 0 8px;
+  color: var(--bone);
+}
+
+.cta-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(236, 230, 221, 0.85);
+  margin: 0 0 16px;
+}
+
+.cta-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--blood);
+  color: var(--bone);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cta-btn:active {
+  transform: scale(0.98);
+}
+
 .overlay {
   position: relative;
   z-index: 1;
