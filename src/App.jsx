@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { questions, results } from './quizData'
+import AdminPanel from './AdminPanel'
 
 export default function App() {
   // Инициализация Telegram Mini App SDK (если открыто внутри Telegram)
@@ -9,6 +10,23 @@ export default function App() {
       tg.ready()
       tg.expand()
     }
+  }, [])
+
+  // Проверяем, админ ли текущий пользователь (для показа кнопки админки)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
+
+  useEffect(() => {
+    const initData = window.Telegram?.WebApp?.initData
+    if (!initData) return
+    fetch('/api/admin/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData }),
+    })
+      .then((r) => r.json())
+      .then((data) => setIsAdmin(Boolean(data.isAdmin)))
+      .catch(() => setIsAdmin(false))
   }, [])
 
   // answers[i] = архетип, выбранный на вопросе i. Длина массива = сколько вопросов пройдено.
@@ -49,10 +67,25 @@ export default function App() {
     setAnswers([])
   }
 
+  const adminToggle = isAdmin && !showAdmin && (
+    <button
+      className="admin-toggle"
+      onClick={() => setShowAdmin(true)}
+      aria-label="Админка"
+    >
+      ⚙
+    </button>
+  )
+
+  if (showAdmin) {
+    return <AdminPanel onClose={() => setShowAdmin(false)} />
+  }
+
   if (isFinished) {
     const result = results[resultKey]
     return (
       <div className="screen result-screen">
+        {adminToggle}
         <img className="bg-blur" src={result.image} alt="" aria-hidden="true" />
         <div className="blur-tint" />
         <div className="result-content">
@@ -75,6 +108,7 @@ export default function App() {
 
   return (
     <div className="screen">
+      {adminToggle}
       <img className="bg-image" src="/images/bg.png" alt="" />
       <div className="overlay">
         <div className="top-row">
