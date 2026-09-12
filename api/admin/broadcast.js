@@ -20,11 +20,24 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+// Простое форматирование: **жирный** -> <b>, _курсив_ -> <i>
+// (сначала экранируем спецсимволы HTML, потом расставляем теги)
+function toTelegramHtml(text) {
+  if (!text) return text
+  let escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  escaped = escaped.replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>')
+  escaped = escaped.replace(/_([\s\S]+?)_/g, '<i>$1</i>')
+  return escaped
+}
+
 async function sendToUser(botToken, chatId, { photo, caption, replyMarkup }) {
   if (photo) {
     const form = new FormData()
     form.append('chat_id', String(chatId))
-    if (caption) form.append('caption', caption)
+    if (caption) {
+      form.append('caption', caption)
+      form.append('parse_mode', 'HTML')
+    }
     if (replyMarkup) form.append('reply_markup', JSON.stringify(replyMarkup))
     form.append('photo', new Blob([photo.buffer], { type: photo.mime }), photo.filename)
 
@@ -42,6 +55,7 @@ async function sendToUser(botToken, chatId, { photo, caption, replyMarkup }) {
     body: JSON.stringify({
       chat_id: chatId,
       text: caption,
+      parse_mode: 'HTML',
       reply_markup: replyMarkup,
     }),
   })
@@ -102,12 +116,13 @@ export default async function handler(req, res) {
 
   let sent = 0
   let failed = 0
+  const formattedCaption = trimmedCaption ? toTelegramHtml(trimmedCaption) : undefined
 
   for (const chatId of targetIds) {
     try {
       const ok = await sendToUser(botToken, chatId, {
         photo,
-        caption: trimmedCaption || undefined,
+        caption: formattedCaption,
         replyMarkup,
       })
       if (ok) sent += 1

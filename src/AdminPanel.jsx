@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function getInitData() {
   return window.Telegram?.WebApp?.initData
@@ -157,6 +157,22 @@ function BroadcastTab() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null)
+  const textareaRef = useRef(null)
+
+  function wrapSelection(marker) {
+    const el = textareaRef.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const selected = caption.slice(start, end)
+    const next = caption.slice(0, start) + marker + selected + marker + caption.slice(end)
+    setCaption(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.selectionStart = start + marker.length
+      el.selectionEnd = start + marker.length + selected.length
+    })
+  }
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
@@ -217,13 +233,23 @@ function BroadcastTab() {
       {photoPreview && <img src={photoPreview} alt="" className="broadcast-preview" />}
 
       <label className="admin-label">Текст</label>
+      <div className="format-toolbar">
+        <button type="button" onClick={() => wrapSelection('**')} className="format-btn">
+          <b>Ж</b>
+        </button>
+        <button type="button" onClick={() => wrapSelection('_')} className="format-btn">
+          <i>К</i>
+        </button>
+      </div>
       <textarea
+        ref={textareaRef}
         className="admin-textarea"
         rows={5}
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
         placeholder="Текст сообщения"
       />
+      <p className="format-hint">Выдели текст и нажми Ж или К — либо пиши сам: **жирный**, _курсив_</p>
 
       <label className="admin-label">Кнопка (необязательно)</label>
       <input
