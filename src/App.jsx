@@ -11,7 +11,7 @@ export default function App() {
     }
   }, [])
 
-  // answers[i] = archetype, выбранный на вопросе i. Длина массива = сколько вопросов пройдено.
+  // answers[i] = архетип, выбранный на вопросе i. Длина массива = сколько вопросов пройдено.
   const [answers, setAnswers] = useState([])
 
   const step = answers.length // индекс текущего вопроса (0..questions.length)
@@ -40,10 +40,20 @@ export default function App() {
     const result = results[resultKey]
     return (
       <div className="screen result-screen">
-        <img className="bg-image" src={result.image} alt={result.title} />
-        <button className="restart-btn" onClick={handleRestart}>
-          Пройти ещё раз
-        </button>
+        <img className="bg-blur" src={result.image} alt="" aria-hidden="true" />
+        <div className="blur-tint" />
+        <div className="result-content">
+          <div className="result-image-frame">
+            <img className="result-image" src={result.image} alt={result.title} />
+          </div>
+          <div className="result-text-panel">
+            <h1 className="result-title">{result.title}</h1>
+            <p className="result-text">{result.text}</p>
+          </div>
+          <button className="restart-btn" onClick={handleRestart}>
+            Пройти ещё раз
+          </button>
+        </div>
       </div>
     )
   }
