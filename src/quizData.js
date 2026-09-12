@@ -2,7 +2,7 @@
 // 1 -> star (Звезда), 2 -> expert (Эксперт), 3 -> blogger (Блогер), 4 -> eminence (Серый кардинал)
 
 // Username клиента в Telegram (без @) — куда ведёт кнопка призыва на результате
-export const CLIENT_USERNAME = 'ЗАМЕНИ_НА_USERNAME_КЛИЕНТА'
+export const CLIENT_USERNAME = '@rzahar0va'
 
 export const questions = [
   {
