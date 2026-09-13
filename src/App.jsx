@@ -68,7 +68,7 @@ export default function App() {
   }
 
   function handleContactClient() {
-    const url = `https://t.me/${CLIENT_USERNAME}?text=${encodeURIComponent('архетип')}`
+    const url = `https://t.me/${CLIENT_USERNAME}?text=${encodeURIComponent('АРХЕТИП')}`
     const tg = window.Telegram?.WebApp
     if (tg?.openTelegramLink) {
       tg.openTelegramLink(url)
@@ -107,11 +107,10 @@ export default function App() {
             <p className="result-text">{result.text}</p>
           </div>
           <div className="cta-panel">
-            <p className="cta-title">Поздравляю! Ты определил(а) свой архетип!</p>
+            <p className="cta-title">ты узнал(а) свой архетип💔</p>
             <p className="cta-text">
-              Чтобы он приносил деньги и аудиторию, нужен разбор твоей личной стратегии,
-              а не общей теории. Жми на кнопку и пиши «архетип» — разберу лично, как
-              заработать именно через твой архетип.
+              хочешь, чтобы я помогла тебе выстроить через него стратегию по контенту?
+              пиши «АРХЕТИП» в личные сообщения
             </p>
             <button className="cta-btn" onClick={handleContactClient}>
               Написать «архетип»
